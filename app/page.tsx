@@ -3,11 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/utils/supabase';
 
+// 1. Define the Metric interface so TypeScript is happy
+interface Metric {
+  id: string;
+  name: string;
+  category: string;
+  passed: boolean;
+}
+
 export default function SecureScorePlatform() {
-  const [tenantId, setTenantId] = useState(null);
+  const [tenantId, setTenantId] = useState<string | null>(null);
   const [tenantName, setTenantName] = useState('BC Technologies');
   const [primaryColor, setPrimaryColor] = useState('#3B82F6');
-  const [metrics, setMetrics] = useState([]);
+  
+  // 2. Apply the interface to the state
+  const [metrics, setMetrics] = useState<Metric[]>([]);
+  
   const [newFieldName, setNewFieldName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('identity');
 
@@ -31,7 +42,7 @@ export default function SecureScorePlatform() {
           .order('id', { ascending: true });
 
         if (metricsData) {
-          const formattedMetrics = metricsData.map((m) => ({
+          const formattedMetrics: Metric[] = metricsData.map((m: any) => ({
             id: m.id,
             name: m.field_name,
             category: m.category,
@@ -44,7 +55,7 @@ export default function SecureScorePlatform() {
     loadDashboardData();
   }, []);
 
-  const calculateCategoryScore = (category) => {
+  const calculateCategoryScore = (category: string) => {
     const categoryFields = metrics.filter(m => m.category === category);
     if (categoryFields.length === 0) return 0;
     const passedFields = categoryFields.filter(m => m.passed);
@@ -58,7 +69,7 @@ export default function SecureScorePlatform() {
   
   const overallTenantScore = metrics.length === 0 ? 0 : Math.round((identityScore + dataScore + deviceScore + appScore) / 4);
 
-  const handleAddField = async (e) => {
+  const handleAddField = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFieldName.trim() || !tenantId) return;
     
@@ -80,7 +91,7 @@ export default function SecureScorePlatform() {
       return;
     }
 
-    const newMetric = {
+    const newMetric: Metric = {
       id: data.id,
       name: data.field_name,
       category: data.category,
@@ -91,7 +102,7 @@ export default function SecureScorePlatform() {
     setNewFieldName('');
   };
 
-  const toggleMetricStatus = async (id, currentStatus) => {
+  const toggleMetricStatus = async (id: string, currentStatus: boolean) => {
     const newStatus = !currentStatus;
 
     const { error } = await supabase
@@ -109,9 +120,7 @@ export default function SecureScorePlatform() {
     ));
   };
 
-  // NEW LOGIC: Delete the metric completely
-  const deleteMetric = async (id) => {
-    // 1. Delete from Supabase cloud
+  const deleteMetric = async (id: string) => {
     const { error } = await supabase
       .from('tenant_metrics')
       .delete()
@@ -122,7 +131,6 @@ export default function SecureScorePlatform() {
       return;
     }
 
-    // 2. Remove from local React state
     setMetrics(metrics.filter(metric => metric.id !== id));
   };
 
@@ -266,7 +274,6 @@ export default function SecureScorePlatform() {
                           {item.passed ? 'Compliant (Passed)' : 'Action Required'}
                         </button>
                       </td>
-                      {/* NEW LOGIC: Delete Button */}
                       <td className="p-3 text-right">
                         <button 
                           onClick={() => deleteMetric(item.id)}
@@ -282,7 +289,6 @@ export default function SecureScorePlatform() {
             </table>
           </div>
         </div>
-
       </div>
     </div>
   );
